@@ -1,0 +1,10 @@
+---
+
+- name: Make sure we have out role path
+  local_action: file path={{ galaxy_path }} state=directory
+
+- name: Install roles from galaxy
+  local_action: shell test -d {{ galaxy_path }}/{{ item.name }} || ansible-galaxy install {{ item.name }},{{ item.version }} -p {{ galaxy_path }}
+  with_items: galaxy_roles
+  register: result
+  changed_when: "'was installed successfully' in result.stdout"
