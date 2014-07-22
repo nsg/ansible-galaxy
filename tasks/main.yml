@@ -1,6 +1,6 @@
 ---
 
-- name: Make sure we have out role path
+- name: Make sure we have our role path
   local_action: file path={{ galaxy_path }} state=directory
 
 - name: Install roles from galaxy
