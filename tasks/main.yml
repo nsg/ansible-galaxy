@@ -8,3 +8,11 @@
   with_items: galaxy_roles
   register: result
   changed_when: "'was installed successfully' in result.stdout"
+  when: item.git is not defined
+
+- name: Install roles from git
+  local_action: shell test -d {{ galaxy_path }}/{{ item.name }} || ( cd {{ galaxy_path }} && git clone {{ item.git }} -b {{ item.version }} {{ item.name }} )
+  with_items: galaxy_roles
+  register: result
+  changed_when: "'Cloning into' in result.stdout"
+  when: item.git is defined
