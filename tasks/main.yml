@@ -7,7 +7,7 @@
   local_action: file path={{ galaxy_versioned_path }} state=directory
 
 - name: Prepare versioned roles
-  local_action: shell mkdir -p {{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }}
+  local_action: shell mkdir -p {{ galaxy_versioned_path }}/{{ item.version }}
   with_items: galaxy_roles
   changed_when: False
 
