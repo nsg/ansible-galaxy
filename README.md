@@ -28,9 +28,6 @@ run this like this:
 
 `ansible-playbook setup.yml -i localhost,`
 
-The role do not understand updates, if you have change the version you need to manually
-delete the downloaded role.
-
 License
 -------
 
