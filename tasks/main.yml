@@ -6,10 +6,17 @@
 - name: Make sure we have our role version path
   local_action: file path={{ galaxy_versioned_path }} state=directory
 
-- name: Prepare versioned roles
+- name: Prepare roles versioned with rev
+  local_action: shell mkdir -p {{ galaxy_versioned_path }}/{{ item.rev }}
+  with_items: galaxy_roles
+  changed_when: False
+  when: item.rev is defined
+
+- name: Prepare roles versioned with version
   local_action: shell mkdir -p {{ galaxy_versioned_path }}/{{ item.version }}
   with_items: galaxy_roles
   changed_when: False
+  when: item.version is defined
 
 - name: Install roles from galaxy
   local_action: shell test -d {{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }} || ansible-galaxy install {{ item.name }},{{ item.version }} -p {{ galaxy_versioned_path }}/{{ item.version }}
@@ -18,17 +25,41 @@
   changed_when: "'was installed successfully' in result.stdout"
   when: item.git is not defined
 
-- name: Install roles from git
-  local_action: shell test -d {{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }} || ( cd {{ galaxy_path }} && git clone {{ item.git }} -b {{ item.version }} {{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }} )
+- name: Install roles from git (with a tagged version)
+  local_action: shell test -d {{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }} || git clone {{ item.git }} -b {{ item.version }} {{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }}
   with_items: galaxy_roles
   register: result
   changed_when: "'Cloning into' in result.stdout"
-  when: item.git is defined
+  when: item.git is defined and item.version is defined
 
-- name: Setup links in role_path
+- name: Install roles from git (from a revision) (1/2)
+  local_action: shell test -d {{ galaxy_versioned_path }}/{{ item.rev }}/{{ item.name }} || git clone {{ item.git }} {{ galaxy_versioned_path }}/{{ item.rev }}/{{ item.name }}
+  with_items: galaxy_roles
+  register: result
+  changed_when: "'Cloning into' in result.stdout"
+  when: item.git is defined and item.rev is defined
+
+- name: Install roles from git (from a revision) (2/2)
+  local_action: shell cd {{ galaxy_versioned_path }}/{{ item.rev }}/{{ item.name }} && ( git branch | grep -q current || git checkout -b current {{ item.rev }} )
+  with_items: galaxy_roles
+  register: result
+  changed_when: "'Switched to a new branch' in result.stderr"
+  when: item.git is defined and item.rev is defined
+
+- name: Setup links in role_path for roles with a version
   file:
     src: "{{ galaxy_versioned_path }}/{{ item.version }}/{{ item.name }}"
     dest: "{{ galaxy_path }}/{{ item.name }}"
     state: link
     force: yes
   with_items: galaxy_roles
+  when: item.version is defined
+
+- name: Setup links in role_path for roles with a revision
+  file:
+    src: "{{ galaxy_versioned_path }}/{{ item.rev }}/{{ item.name }}"
+    dest: "{{ galaxy_path }}/{{ item.name }}"
+    state: link
+    force: yes
+  with_items: galaxy_roles
+  when: item.rev is defined
